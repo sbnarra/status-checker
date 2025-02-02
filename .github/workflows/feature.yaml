@@ -1,0 +1,41 @@
+name: Final
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Run Go tests
+      run: |
+        go test ./... -v
+      
+    - name: Get short commit hash
+      id: get_hash
+      run: echo "hash=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+    - name: Get commit message
+      id: get_message
+      run: echo "message=$(git log -1 --pretty=%B)" >> $GITHUB_ENV
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+      with:
+        platforms: all
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    - name: Build and push multi-arch image
+      run: |
+        docker buildx build \
+          --platform linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x \
+          --build-arg CREATED=$(date --iso-8601=s) \
+          --build-arg REVISION=${{ env.hash }} \
+          --build-arg MODULE=checker \
+          -t status-checker:${{ env.hash }} \
+          -t status-checker:latest \
+          --output type=local,dest=./build \
+          --push .

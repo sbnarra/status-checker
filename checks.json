@@ -1,0 +1,6 @@
+{
+  "ssh": {
+    "Command": "sudo systemctl status ssh",
+    "Recover": "echo hello"
+  }
+}
