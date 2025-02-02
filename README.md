@@ -1,29 +1,5 @@
-status page:
-...endpoints...
-/ui/status - view of all check status as timelines
-/ui/checks - manage checks
+# Status Checker
 
-status api:
-...endpoints...
-/api/checks
-/api/checks/{ID}
-/api/checks/{ID}/status
-/api/checks/{ID}/check
+Go app schedules status checks, if fails will execute recovery command.
 
-status checker:
-...
-
-models:
-check = {
-  name; string
-  command; string
-  schedule; string
-  enabled; string
-  recoveryCommand; string
-}
-
-status = {
-  ok; boolean
-  logs; string
-  recovered; boolean
-}
+Base for home lab status page.

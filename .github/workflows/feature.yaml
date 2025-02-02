@@ -1,7 +1,7 @@
-name: Final
+name: Feature
 on:
   push:
-    branches:
+    branches-ignore:
       - main
 jobs:
   build-release:
