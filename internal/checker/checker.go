@@ -8,13 +8,14 @@ import (
 	"os"
 	"os/exec"
 	"status/internal/model"
+	"strings"
 
 	"github.com/robfig/cron/v3"
 )
 
-type onChecked func(string, model.Check, model.CheckResult)
+type OnChecked func(string, model.Check, model.CheckResult)
 
-func New(checkPath string, onChecked onChecked) (*cron.Cron, error) {
+func New(checkPath string, onChecked OnChecked) (*cron.Cron, error) {
 	checks, err := readConfig(checkPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config: %w", err)
@@ -23,7 +24,7 @@ func New(checkPath string, onChecked onChecked) (*cron.Cron, error) {
 	return checker, nil
 }
 
-func startChecking(checks map[string]model.Check, onChecked onChecked) *cron.Cron {
+func startChecking(checks map[string]model.Check, onChecked OnChecked) *cron.Cron {
 	c := cron.New()
 	for name, check := range checks {
 		registerCheck(name, check, onChecked, c)
@@ -31,7 +32,7 @@ func startChecking(checks map[string]model.Check, onChecked onChecked) *cron.Cro
 	return c
 }
 
-func registerCheck(name string, check model.Check, onChecked onChecked, c *cron.Cron) {
+func registerCheck(name string, check model.Check, onChecked OnChecked, c *cron.Cron) {
 	var schedule string
 	if check.Schedule == nil {
 		schedule = "* * * * *"
@@ -40,6 +41,8 @@ func registerCheck(name string, check model.Check, onChecked onChecked, c *cron.
 	}
 
 	fmt.Printf("check '%s' has schedule '%s' using '%s'\n", name, schedule, check.Command)
+	result := runCheck(check)
+	onChecked(name, check, result)
 	c.AddFunc(schedule, func() {
 		result := runCheck(check)
 		onChecked(name, check, result)
@@ -47,39 +50,37 @@ func registerCheck(name string, check model.Check, onChecked onChecked, c *cron.
 }
 
 func runCheck(check model.Check) model.CheckResult {
-	out, err := runCmd(check.Command)
+	checkStdout, checkError := runCmd(check.Command)
 	result := model.CheckResult{
-		CheckOutput: out,
-		CheckError:  &err,
+		CheckOutput: checkStdout,
+		CheckError:  checkError,
 	}
 
 	if result.CheckError == nil {
 		return result
 	} else if check.Recover == nil {
-		err = errors.New("no recovery command")
-		result.RecoverError = &err
+		result.RecoverError = errors.New("no recovery command")
 		return result
 	}
 
-	out, err = runCmd(*check.Recover)
-	result.RecoverOutput = &out
-	result.RecoverError = &err
+	recoverStdout, recoverErr := runCmd(*check.Recover)
+	result.RecoverOutput = &recoverStdout
+	result.RecoverError = recoverErr
 	if result.RecoverError != nil {
 		return result
 	}
 
-	out, err = runCmd(check.Command)
-	result.RecheckOutput = &out
-	result.RecheckError = &err
+	recheckStdout, recheckErr := runCmd(check.Command)
+	result.RecheckOutput = &recheckStdout
+	result.RecheckError = recheckErr
 	return result
 }
 
 func runCmd(command string) (string, error) {
-	fmt.Println("executing:", command)
 	cmd := exec.Command("bash", "-c", command)
 	cmd.Env = os.Environ()
 	out, err := cmd.CombinedOutput()
-	return string(out), err
+	return strings.TrimSpace(string(out)), err
 }
 
 func readConfig(checkPath string) (map[string]model.Check, error) {

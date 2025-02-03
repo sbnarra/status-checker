@@ -8,9 +8,9 @@ type Check struct {
 
 type CheckResult struct {
 	CheckOutput   string
-	CheckError    *error
+	CheckError    error
 	RecoverOutput *string
-	RecoverError  *error
+	RecoverError  error
 	RecheckOutput *string
-	RecheckError  *error
+	RecheckError  error
 }

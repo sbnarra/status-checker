@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"status/internal/checker"
 	"status/internal/model"
+	"status/internal/slack"
 	"status/internal/util"
 )
 
@@ -16,7 +18,9 @@ func main() {
 		checkPath = "checks.json"
 	}
 
-	if checker, err := checker.New(checkPath, onChecked); err != nil {
+	slackHookUrl := os.Getenv("SLACK_HOOK_URL")
+
+	if checker, err := checker.New(checkPath, onChecked(slackHookUrl)); err != nil {
 		panic(err)
 	} else {
 		checker.Start()
@@ -25,19 +29,16 @@ func main() {
 	}
 }
 
-func onChecked(name string, check model.Check, result model.CheckResult) {
-	if result.CheckError != nil {
-		fmt.Printf("check '%s' failed: %s", name, result.CheckOutput)
+func onChecked(slackHookUrl string) checker.OnChecked {
+	return func(name string, check model.Check, result model.CheckResult) {
+		if result.CheckError != nil {
+			if slackHookUrl != "" {
+				slack.Send(slackHookUrl, name, check, result)
+			} else {
+				checkJson, _ := json.Marshal(check)
+				resultJson, _ := json.Marshal(result)
+				fmt.Printf("check=%s,result=%s\n", string(checkJson), string(resultJson))
+			}
+		}
 	}
-
-	if result.RecoverError != nil {
-		fmt.Printf("recover '%s' failed: %s", name, result.CheckOutput)
-	}
-
-	if result.RecheckError != nil {
-		fmt.Printf("re-check '%s' failed: %s", name, result.CheckOutput)
-	}
-
-	// notify Slack
-	// update db via API
 }
