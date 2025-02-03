@@ -41,7 +41,6 @@ jobs:
           --platform linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x \
           --build-arg CREATED=$(date --iso-8601=s) \
           --build-arg REVISION=${{ env.hash }} \
-          --build-arg MODULE=checker \
           -t sbnarra/status-checker:${{ env.hash }} \
           -t sbnarra/status-checker:latest \
           --output type=local,dest=./build \
