@@ -8,7 +8,10 @@ import (
 	"status/internal/model"
 )
 
-func Send(slackHookUrl string, name string, check model.Check, result model.CheckResult) error {
+func Notify(slackHookUrl string, name string, check model.Check, result model.CheckResult) error {
+	if slackHookUrl == "" {
+		return fmt.Errorf("missing slack hook url")
+	}
 	jsonData, err := json.Marshal(map[string]string{"text": Message(name, check, result)})
 	if err != nil {
 		return fmt.Errorf("failed to encode slack payload: %w", err)
@@ -27,7 +30,7 @@ func Message(name string, check model.Check, result model.CheckResult) string {
 		commandMarkdown("Re-Check", name, &check.Command, result.RecheckOutput, result.RecheckError)
 }
 
-func commandMarkdown(stage string, name string, command *string, output *string, err error) string {
+func commandMarkdown(stage string, name string, command *string, output *string, err *string) string {
 	if command == nil {
 		noCommand := "No Command"
 		command = &noCommand
