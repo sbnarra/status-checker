@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"status/internal/model"
+	"status-checker/internal/checker"
+	"status-checker/internal/config"
 )
 
-func Notify(slackHookUrl string, name string, check model.Check, result model.CheckResult) error {
-	if slackHookUrl == "" {
+func Notify(name string, check checker.Check, result checker.CheckResult) error {
+	if config.SlackHookUrl == "" {
 		return fmt.Errorf("missing slack hook url")
 	}
 	jsonData, err := json.Marshal(map[string]string{"text": Message(name, check, result)})
@@ -17,14 +18,14 @@ func Notify(slackHookUrl string, name string, check model.Check, result model.Ch
 		return fmt.Errorf("failed to encode slack payload: %w", err)
 	}
 
-	_, err = http.Post(slackHookUrl, "application/json", bytes.NewBuffer(jsonData))
+	_, err = http.Post(config.SlackHookUrl, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to post to slack: %w", err)
 	}
 	return nil
 }
 
-func Message(name string, check model.Check, result model.CheckResult) string {
+func Message(name string, check checker.Check, result checker.CheckResult) string {
 	return commandMarkdown("Check", name, &check.Command, &result.CheckOutput, result.CheckError) +
 		commandMarkdown("Recovery", name, check.Recover, result.RecoverOutput, result.RecoverError) +
 		commandMarkdown("Re-Check", name, &check.Command, result.RecheckOutput, result.RecheckError)

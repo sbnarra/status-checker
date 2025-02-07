@@ -2,7 +2,8 @@ package prometheus
 
 import (
 	"fmt"
-	"status/internal/model"
+	"status-checker/internal/checker"
+	"status-checker/internal/config"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -17,7 +18,11 @@ type checkMetrics struct {
 
 var metrics = make(map[string]checkMetrics)
 
-func Publish(name string, result model.CheckResult) {
+func Publish(name string, result checker.CheckResult) {
+	if config.PrometheusEnabled {
+		return
+	}
+
 	checkMetrics := getCheckMetrics(name)
 	checkMetrics.total.Inc()
 

@@ -3,7 +3,9 @@ package history
 import (
 	"io"
 	"os"
-	"status/internal/model"
+	"path/filepath"
+	"status-checker/internal/checker"
+	"status-checker/internal/config"
 	"sync"
 
 	"gopkg.in/yaml.v3"
@@ -11,30 +13,32 @@ import (
 
 var mu sync.Mutex
 
-func Append(historyPath string, name string, result model.CheckResult) error {
+func Append(name string, result checker.CheckResult) error {
 	mu.Lock()
 	defer mu.Unlock()
 
-	history, err := read(historyPath)
+	history, err := Read()
 	if err != nil {
 		return err
 	} else if _, ok := history[name]; !ok {
-		history[name] = []model.CheckResult{}
+		history[name] = []checker.CheckResult{}
 	}
 	history[name] = append(history[name], result)
 
 	if historyContent, err := yaml.Marshal(history); err != nil {
 		return err
-	} else if err := os.WriteFile(historyPath, historyContent, 0644); err != nil {
+	} else if err := os.MkdirAll(filepath.Dir(config.HistoryPath), os.ModePerm); err != nil {
+		return err
+	} else if err := os.WriteFile(config.HistoryPath, historyContent, 0644); err != nil {
 		return err
 	}
 	return nil
 }
 
-func read(historyPath string) (map[string][]model.CheckResult, error) {
-	history := make(map[string][]model.CheckResult)
+func Read() (map[string][]checker.CheckResult, error) {
+	history := make(map[string][]checker.CheckResult)
 
-	historyFile, err := os.Open(historyPath)
+	historyFile, err := os.Open(config.HistoryPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return history, nil

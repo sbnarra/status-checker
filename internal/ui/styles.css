@@ -1,0 +1,48 @@
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+}
+.service {
+  margin-bottom: 20px;
+}
+.service-name {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+.status-blocks {
+  display: flex;
+  flex-wrap: wrap;
+}
+.status-block {
+  width: 20px;
+  height: 20px;
+  margin-right: 5px;
+  margin-bottom: 5px;
+  position: relative;
+  cursor: pointer;
+}
+.status-success {
+  background-color: green;
+}
+.status-recovered {
+  background-color: yellow;
+}
+.status-failed {
+  background-color: red;
+}
+.tooltip {
+  visibility: hidden;
+  width: 300px;
+  background-color: #fff;
+  color: #000;
+  text-align: left;
+  border: 1px solid #ccc;
+  padding: 10px;
+  position: absolute;
+  z-index: 1;
+  white-space: pre; /* Preserve newlines */
+  word-wrap: break-word; /* Prevent text from overflowing */
+}
+.status-block:hover .tooltip {
+  visibility: visible;
+}

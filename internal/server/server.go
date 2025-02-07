@@ -1,26 +1,31 @@
 package server
 
 import (
-	"net/http"
+	"status-checker/internal/api"
+	"status-checker/internal/ui"
 
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func Listen(addr string) error {
-	http.Handle("/metrics", withCors(promhttp.Handler()))
-	return http.ListenAndServe(addr, nil)
+	router := newRouter()
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
+	// router.GET("/check", api.GetChecks)
+	router.GET("/history", api.GetHistory)
+	router.GET("/history/:check", api.GetHistoryByCheck)
+
+	ui.Register(router)
+	return router.Run(addr)
 }
 
-func withCors(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "*")
-		// w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-		if r.Method == http.MethodOptions { // preflight requests
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+func newRouter() *gin.Engine {
+	router := gin.Default()
+	router.Use(cors.New(cors.Config{
+		AllowOrigins: []string{"*"},
+		AllowMethods: []string{"*"},
+	}))
+	return router
 }

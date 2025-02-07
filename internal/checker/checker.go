@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"status/internal/model"
+	"status-checker/internal/config"
 	"strings"
 	"time"
 
@@ -13,10 +13,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type OnChecked func(string, model.Check, model.CheckResult)
+type OnChecked func(string, Check, CheckResult)
 
-func New(checkPath string, onChecked OnChecked) (*cron.Cron, error) {
-	checks, err := readConfig(checkPath)
+func New(onChecked OnChecked) (*cron.Cron, error) {
+	checks, err := ReadConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config: %w", err)
 	}
@@ -24,26 +24,29 @@ func New(checkPath string, onChecked OnChecked) (*cron.Cron, error) {
 	return checker, nil
 }
 
-func startChecking(checks map[string]model.Check, onChecked OnChecked) *cron.Cron {
-	c := cron.New()
+func startChecking(checks map[string]Check, onChecked OnChecked) *cron.Cron {
+	c := cron.New(cron.WithParser(cron.NewParser(
+		cron.SecondOptional | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor,
+	)))
 	for name, check := range checks {
 		fmt.Printf("check '%s' has schedule '%s' using '%s'\n", name, check.Schedule, check.Command)
 		CheckNow(name, check, onChecked)
 		c.AddFunc(check.Schedule, func() {
+			fmt.Println("running check", name)
 			CheckNow(name, check, onChecked)
 		})
 	}
 	return c
 }
 
-func CheckNow(name string, check model.Check, onChecked OnChecked) {
+func CheckNow(name string, check Check, onChecked OnChecked) {
 	result := runCheck(check)
 	result.Completed = time.Now()
 	onChecked(name, check, result)
 }
 
-func runCheck(check model.Check) model.CheckResult {
-	result := model.CheckResult{
+func runCheck(check Check) CheckResult {
+	result := CheckResult{
 		Started: time.Now(),
 	}
 
@@ -52,12 +55,14 @@ func runCheck(check model.Check) model.CheckResult {
 	result.CheckError = errToStr(checkError)
 
 	if result.CheckError == nil {
-		result.Status = model.CheckSuccess
+		result.Status = "Success"
 		return result
-	} else if check.Recover == nil {
+	}
+
+	result.Status = "Failed"
+	if check.Recover == nil {
 		missingRecovery := "no recovery command"
 		result.RecoverError = &missingRecovery
-		result.Status = model.CheckFailed
 		return result
 	}
 
@@ -65,15 +70,17 @@ func runCheck(check model.Check) model.CheckResult {
 	result.RecoverOutput = &recoverStdout
 	result.RecoverError = errToStr(recoverErr)
 	if result.RecoverError != nil {
-		result.Status = model.CheckFailed
 		return result
 	}
 
 	recheckStdout, recheckErr := runCmd(check.Command)
 	result.RecheckOutput = &recheckStdout
 	result.RecheckError = errToStr(recheckErr)
-	result.Status = model.CheckRecovered
+	if result.RecheckError != nil {
+		return result
+	}
 
+	result.Status = "Recovered"
 	return result
 }
 
@@ -92,10 +99,10 @@ func runCmd(command string) (string, error) {
 	return strings.TrimSpace(string(out)), err
 }
 
-func readConfig(checkPath string) (map[string]model.Check, error) {
-	checks := make(map[string]model.Check)
+func ReadConfig() (map[string]Check, error) {
+	checks := make(map[string]Check)
 
-	checksFile, err := os.Open(checkPath)
+	checksFile, err := os.Open(config.CheckPath)
 	if err != nil {
 		return nil, err
 	}

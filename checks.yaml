@@ -1,9 +1,0 @@
-ssh:
-  command: sudo systemctl status ssh
-  recover: echo hello
-svc1:
-  command: sudo systemctl status ss
-  recover: echo hello
-svc2:
-  command: rmdir /tmp/ttt
-  recover: mkdir /tmp/ttt
