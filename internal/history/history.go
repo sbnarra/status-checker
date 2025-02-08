@@ -1,56 +1,92 @@
 package history
 
 import (
+	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
 	"status-checker/internal/checker"
 	"status-checker/internal/config"
 	"sync"
-
-	"gopkg.in/yaml.v3"
+	"unsafe"
 )
 
 var mu sync.Mutex
+var historys = map[string][]checker.Result{}
 
-func Append(name string, result checker.CheckResult) error {
-	mu.Lock()
+func Append(name string, result checker.Result) error {
+	mu.Lock() // TODO: only lock per-name?
 	defer mu.Unlock()
 
-	history, err := Read()
+	history, err := Get(name)
 	if err != nil {
 		return err
-	} else if _, ok := history[name]; !ok {
-		history[name] = []checker.CheckResult{}
 	}
-	history[name] = append(history[name], result)
+	history = append(history, result)
 
-	if historyContent, err := yaml.Marshal(history); err != nil {
+	historyTruncated := false
+	for memoryUsage(history) > config.HistoryCheckSizeLimit {
+		if length := len(history); length > config.MinHistory {
+			history = history[:length-1]
+		} else {
+			break
+		}
+	}
+	if historyTruncated {
+		historys[name] = history
+	}
+
+	if historyContent, err := json.Marshal(history); err != nil {
 		return err
-	} else if err := os.MkdirAll(filepath.Dir(config.HistoryPath), os.ModePerm); err != nil {
+	} else if err := os.MkdirAll(config.HistoryDir, os.ModePerm); err != nil {
 		return err
-	} else if err := os.WriteFile(config.HistoryPath, historyContent, 0644); err != nil {
+	} else if err := os.WriteFile(historyFile(name), historyContent, 0644); err != nil {
 		return err
 	}
 	return nil
 }
 
-func Read() (map[string][]checker.CheckResult, error) {
-	history := make(map[string][]checker.CheckResult)
+func memoryUsage(arr []checker.Result) uintptr {
+	var usage uintptr = 0
+	for _, item := range arr {
+		usage += unsafe.Sizeof(item)
+	}
+	return usage
+}
 
-	historyFile, err := os.Open(config.HistoryPath)
-	if err != nil {
+func Get(name string) ([]checker.Result, error) {
+	if history, ok := historys[name]; ok {
+		return history, nil
+	}
+
+	if history, err := load(name); err != nil {
+		return nil, err
+	} else {
+		historys[name] = history
+		return history, nil
+	}
+}
+
+func load(name string) ([]checker.Result, error) {
+	history := []checker.Result{}
+
+	if historyFile, err := os.Open(historyFile(name)); err != nil {
 		if os.IsNotExist(err) {
 			return history, nil
 		}
 		return nil, err
-	}
-	defer historyFile.Close()
+	} else {
+		defer historyFile.Close()
 
-	if historyData, err := io.ReadAll(historyFile); err != nil {
-		return nil, err
-	} else if err := yaml.Unmarshal(historyData, &history); err != nil {
-		return history, err
+		if historyData, err := io.ReadAll(historyFile); err != nil {
+			return nil, err
+		} else {
+			err := json.Unmarshal(historyData, &history)
+			return history, err
+		}
 	}
-	return history, nil
+}
+
+func historyFile(name string) string {
+	return filepath.Join(config.HistoryDir, name+".json")
 }

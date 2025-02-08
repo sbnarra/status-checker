@@ -9,7 +9,7 @@ import (
 	"status-checker/internal/config"
 )
 
-func Notify(name string, check checker.Check, result checker.CheckResult) error {
+func Notify(name string, check checker.Check, result checker.Result) error {
 	if config.SlackHookUrl == "" {
 		return fmt.Errorf("missing slack hook url")
 	}
@@ -25,7 +25,7 @@ func Notify(name string, check checker.Check, result checker.CheckResult) error 
 	return nil
 }
 
-func Message(name string, check checker.Check, result checker.CheckResult) string {
+func Message(name string, check checker.Check, result checker.Result) string {
 	return commandMarkdown("Check", name, &check.Command, &result.CheckOutput, result.CheckError) +
 		commandMarkdown("Recovery", name, check.Recover, result.RecoverOutput, result.RecoverError) +
 		commandMarkdown("Re-Check", name, &check.Command, result.RecheckOutput, result.RecheckError)

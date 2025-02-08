@@ -8,7 +8,7 @@ import (
 )
 
 func GetChecks(c *gin.Context) {
-	if checks, err := checker.ReadConfig(); err != nil {
+	if checks, err := checker.Config(); err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, err)
 	} else {
 		c.IndentedJSON(http.StatusOK, checks)

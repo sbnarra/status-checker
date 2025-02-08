@@ -11,11 +11,16 @@ import (
 )
 
 func GetHistory(c *gin.Context) {
-	if allHistory, err := history.Read(); err != nil {
+	if checkerConfig, err := checker.Config(); err != nil {
 		onError(c, err)
 	} else {
-		for name, checkHistory := range allHistory {
-			if filteredHistory, err := applyHistoryFilters(c, checkHistory); err != nil {
+
+		allHistory := map[string][]checker.Result{}
+		for name, _ := range checkerConfig {
+			if checkHistory, err := history.Get(name); err != nil {
+				onError(c, err)
+				return
+			} else if filteredHistory, err := applyHistoryFilters(c, checkHistory); err != nil {
 				onError(c, err)
 				return
 			} else {
@@ -27,19 +32,17 @@ func GetHistory(c *gin.Context) {
 }
 
 func GetHistoryByCheck(c *gin.Context) {
-	check := c.Param("check")
-	if allHistory, err := history.Read(); err != nil {
+	name := c.Param("name")
+	if checkHistory, err := history.Get(name); err != nil {
 		onError(c, err)
-	} else if checkHistory, found := allHistory[check]; !found {
-		c.Status(http.StatusNotFound)
-	} else if results, err := applyHistoryFilters(c, checkHistory); err != nil {
+	} else if filteredHistory, err := applyHistoryFilters(c, checkHistory); err != nil {
 		onError(c, err)
 	} else {
-		c.IndentedJSON(http.StatusOK, results)
+		c.IndentedJSON(http.StatusOK, filteredHistory)
 	}
 }
 
-func applyHistoryFilters(c *gin.Context, results []checker.CheckResult) ([]checker.CheckResult, error) {
+func applyHistoryFilters(c *gin.Context, results []checker.Result) ([]checker.Result, error) {
 	if sinceStr := c.Query("since"); sinceStr != "" {
 
 		if since, err := time.Parse("2006-01-02T15:04:05", sinceStr); err != nil {
@@ -52,11 +55,10 @@ func applyHistoryFilters(c *gin.Context, results []checker.CheckResult) ([]check
 	return results, nil
 }
 
-func filterHistorySince(since time.Time, results []checker.CheckResult) []checker.CheckResult {
-	new := []checker.CheckResult{}
+func filterHistorySince(since time.Time, results []checker.Result) []checker.Result {
+	new := []checker.Result{}
 	for _, result := range results {
 		if result.Completed.UnixMicro() > since.UnixMicro() {
-			// if result.Completed.After(since) {
 			new = append(new, result)
 		}
 	}

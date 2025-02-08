@@ -18,7 +18,7 @@ type checkMetrics struct {
 
 var metrics = make(map[string]checkMetrics)
 
-func Publish(name string, result checker.CheckResult) {
+func Publish(name string, result checker.Result) {
 	if config.PrometheusEnabled {
 		return
 	}

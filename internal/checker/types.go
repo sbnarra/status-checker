@@ -1,26 +1,13 @@
 package checker
 
 import (
-	"encoding/json"
 	"time"
 )
 
 type Check struct {
-	Schedule string  `json:"schedule"`
-	Command  string  `json:"command"`
-	Recover  *string `json:"recover"`
-}
-
-func (c *Check) UnmarshalJSON(data []byte) error {
-	type Defaults Check
-	var defaults = Defaults{
-		Schedule: "* * * * *",
-	}
-	if err := json.Unmarshal(data, &defaults); err != nil {
-		return err
-	}
-	*c = Check(defaults)
-	return nil
+	Schedule string  `yaml:"schedule"`
+	Command  string  `yaml:"command"`
+	Recover  *string `yaml:"recover"`
 }
 
 func (c *Check) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -35,7 +22,10 @@ func (c *Check) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-type CheckResult struct {
+type Result struct {
+	Command string  `yaml:"command"`
+	Recover *string `yaml:"recover"`
+
 	Started   time.Time `json:"started"`
 	Completed time.Time `json:"completed"`
 	Status    string    `json:"status"`
