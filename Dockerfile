@@ -16,7 +16,7 @@ FROM --platform=$BUILDPLATFORM golang:1.23.5-alpine AS checker-build
 ARG TARGETOS
 ARG TARGETARCH
 COPY ./ .
-RUN GO111MODULE=on CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o status-checker cmd/checker/main.go
+RUN GO111MODULE=on CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o status-checker main.go
 
 FROM status AS checker
 LABEL org.opencontainers.image.ref.name "sbnarra/status-checker"
