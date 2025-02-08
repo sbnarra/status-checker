@@ -23,8 +23,8 @@ func (c *Check) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 type Result struct {
-	Command string  `yaml:"command"`
-	Recover *string `yaml:"recover"`
+	Command string  `json:"command"`
+	Recover *string `json:"recover"`
 
 	Started   time.Time `json:"started"`
 	Completed time.Time `json:"completed"`
