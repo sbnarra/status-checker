@@ -44,7 +44,7 @@ func Init() error {
 	// monitoring/notifications
 	if PrometheusEnabled, err = withBoolDefault("PROMETHEUS_ENABLED", false); err != nil {
 		return err
-	} else if SlackHookUrl, err = withStrDefault("SLACK_HOOK_URL", "https://hooks.slack.com/services/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"); err != nil {
+	} else if SlackHookUrl, err = withStrDefault("SLACK_HOOK_URL", ""); err != nil {
 		return err
 	}
 	return nil
