@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"os"
 	"status-checker/internal/api"
 	"strconv"
 	"time"
@@ -27,8 +28,15 @@ func Listen(addr string) error {
 }
 
 func indexPage(c *gin.Context) {
+	hostname := ""
+	if osHostname, err := os.Hostname(); err == nil {
+		hostname = osHostname
+	} else {
+		hostname = err.Error()
+	}
 	c.HTML(http.StatusOK, "index.html", gin.H{
-		"v": strconv.FormatInt(time.Now().Unix(), 10),
+		"v":        strconv.FormatInt(time.Now().Unix(), 10),
+		"hostname": hostname,
 	})
 }
 

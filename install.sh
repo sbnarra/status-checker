@@ -5,7 +5,7 @@ INSTALL_DIR=${INSTALL_DIR:-/opt/status-checker}
 
 if [ "$(id -u)" -ne 0 ]; then
     echo "This installer must be run as root, elevating..."
-    exec sudo bash "$0" "$@"
+    exit 1
 fi
 
 echo "Installing Status Checker!"

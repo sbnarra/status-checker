@@ -15,7 +15,7 @@ Status Checker is a Go application that schedules periodic status checks. If a c
 To install Status Checker, run the following command:
 
 ```bash
-curl -s https://raw.githubusercontent.com/sbnarra/status-checker/refs/heads/main/install.sh | bash
+curl -s https://raw.githubusercontent.com/sbnarra/status-checker/refs/heads/main/install.sh | sudo bash
 ```
 
 ## Configuration
