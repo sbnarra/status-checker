@@ -7,6 +7,7 @@ import (
 	"status-checker/internal/checker"
 	"status-checker/internal/config"
 	"status-checker/internal/history"
+	"status-checker/internal/log"
 	"status-checker/internal/prometheus"
 	"status-checker/internal/server"
 	"status-checker/internal/slack"
@@ -36,12 +37,13 @@ func main() {
 
 func onChecked(name string, check checker.Check, result checker.Result) {
 	if err := history.Append(name, result); err != nil {
-		fmt.Println("failed to append history:", err)
-	}
-	if result.CheckError != nil {
-		if err := slack.Notify(name, check, result); err != nil {
-			fmt.Println("failed to send slack message:", err)
-		}
+		log.Error("failed to append history: %s", err)
 	}
 	prometheus.Publish(name, result)
+	if result.CheckError == nil {
+		return
+	}
+	if err := slack.Notify(name, check, result); err != nil {
+		log.Error("failed to send slack message: %s", err)
+	}
 }

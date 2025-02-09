@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"status-checker/internal/config"
+	"status-checker/internal/log"
 	"strings"
 	"time"
 
@@ -16,31 +17,33 @@ import (
 type OnChecked func(string, Check, Result)
 
 func New(onChecked OnChecked) (*cron.Cron, error) {
-	checks, err := Config()
-	if err != nil {
+	if checks, err := Config(); err != nil {
 		return nil, fmt.Errorf("failed to read config: %w", err)
+	} else if checker, err := runChecks(checks, onChecked); err != nil {
+		return nil, fmt.Errorf("failed to start checker: %w", err)
+	} else {
+		return checker, nil
 	}
-	checker := startChecking(checks, onChecked)
-	return checker, nil
 }
 
-func startChecking(checks map[string]Check, onChecked OnChecked) *cron.Cron {
+func runChecks(checks map[string]Check, onChecked OnChecked) (*cron.Cron, error) {
 	c := cron.New(cron.WithParser(cron.NewParser(
 		cron.SecondOptional | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor,
 	)))
 	for name, check := range checks {
 
-		fmt.Printf("check '%s' has schedule '%s' using '%s'\n", name, check.Schedule, check.Command)
-		result := runCheck(check)
-		onChecked(name, check, result)
-
-		c.AddFunc(check.Schedule, func() {
-			fmt.Println("running check", name)
+		log.Info("check '%s' has schedule '%s' using '%s'", name, check.Schedule, check.Command)
+		doCheck := func() {
+			log.Debug("running check '%s'", name)
 			result := runCheck(check)
 			onChecked(name, check, result)
-		})
+		}
+		doCheck()
+		if _, err := c.AddFunc(check.Schedule, doCheck); err != nil {
+			return nil, err
+		}
 	}
-	return c
+	return c, nil
 }
 
 func runCheck(check Check) Result {
@@ -48,37 +51,38 @@ func runCheck(check Check) Result {
 		Command: check.Command,
 		Recover: check.Recover,
 		Started: time.Now(),
-		Status:  "Failed",
 	}
-	defer func() { result.Completed = time.Now() }()
+	finalise := func(status string) Result {
+		result.Completed = time.Now()
+		result.Status = status
+		return result
+	}
 
 	checkStdout, checkError := runCmd(check.Command)
 	result.CheckOutput = checkStdout
 	result.CheckError = errToStr(checkError)
 	if result.CheckError == nil {
-		result.Status = "Success"
-		return result
+		return finalise("Success")
 	} else if check.Recover == nil {
 		missingRecovery := "no recovery command"
 		result.RecoverError = &missingRecovery
-		return result
+		return finalise("Failed")
 	}
 
 	recoverStdout, recoverErr := runCmd(*check.Recover)
 	result.RecoverOutput = &recoverStdout
 	result.RecoverError = errToStr(recoverErr)
 	if result.RecoverError != nil {
-		return result
+		return finalise("Failed")
 	}
 
 	recheckStdout, recheckErr := runCmd(check.Command)
 	result.RecheckOutput = &recheckStdout
 	result.RecheckError = errToStr(recheckErr)
 	if result.RecheckError != nil {
-		return result
+		return finalise("Failed")
 	}
-	result.Status = "Recovered"
-	return result
+	return finalise("Recovered")
 }
 
 func errToStr(err error) *string {

@@ -1,8 +1,10 @@
 package server
 
 import (
+	"net/http"
 	"status-checker/internal/api"
-	"status-checker/internal/ui"
+	"strconv"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -11,18 +13,29 @@ import (
 
 func Listen(addr string) error {
 	router := newRouter()
+
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// router.GET("/check", api.GetChecks)
 	router.GET("/history", api.GetHistory)
-	router.GET("/history/:check", api.GetHistoryByCheck)
+	router.GET("/history/:name", api.GetHistoryByCheck)
 
-	ui.Register(router)
+	router.LoadHTMLFiles("ui/index.html")
+	router.GET("/ui", indexPage)
+	router.Static("/ui/assets", "./ui/assets")
 	return router.Run(addr)
 }
 
+func indexPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "index.html", gin.H{
+		"v": strconv.FormatInt(time.Now().Unix(), 10),
+	})
+}
+
 func newRouter() *gin.Engine {
+	// gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
+	router.SetTrustedProxies([]string{})
 	router.Use(cors.New(cors.Config{
 		AllowOrigins: []string{"*"},
 		AllowMethods: []string{"*"},

@@ -42,23 +42,32 @@ func GetHistoryByCheck(c *gin.Context) {
 	}
 }
 
+const dateTimeFormat = "2006-01-02T15:04:05"
+
 func applyHistoryFilters(c *gin.Context, results []checker.Result) ([]checker.Result, error) {
-	if sinceStr := c.Query("since"); sinceStr != "" {
-
-		if since, err := time.Parse("2006-01-02T15:04:05", sinceStr); err != nil {
-			return nil, fmt.Errorf("failed to parse 'since': %w", err)
-		} else {
-			results = filterHistorySince(since, results)
-		}
-
+	sinceStr := c.Query("since")
+	untilStr := c.Query("until")
+	if sinceStr == "" {
+		sinceStr = time.Now().Add(time.Duration(-1) * time.Hour).Format(dateTimeFormat)
 	}
-	return results, nil
+	if untilStr == "" {
+		untilStr = time.Now().Format(dateTimeFormat)
+	}
+
+	if since, err := time.Parse(dateTimeFormat, sinceStr); err != nil {
+		return nil, fmt.Errorf("failed to parse 'since': %w", err)
+	} else if until, err := time.Parse(dateTimeFormat, untilStr); err != nil {
+		return nil, fmt.Errorf("failed to parse 'until': %w", err)
+	} else {
+		results = filterHistory(since, until, results)
+		return results, nil
+	}
 }
 
-func filterHistorySince(since time.Time, results []checker.Result) []checker.Result {
+func filterHistory(since time.Time, until time.Time, results []checker.Result) []checker.Result {
 	new := []checker.Result{}
 	for _, result := range results {
-		if result.Completed.UnixMicro() > since.UnixMicro() {
+		if result.Started.UnixMicro() > since.UnixMicro() && until.UnixMicro() > result.Started.UnixMicro() {
 			new = append(new, result)
 		}
 	}

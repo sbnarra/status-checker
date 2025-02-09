@@ -22,8 +22,9 @@ FROM status AS checker
 LABEL org.opencontainers.image.ref.name "sbnarra/status-checker"
 LABEL org.opencontainers.image.title "status-checker"
 LABEL org.opencontainers.image.description "status checker"
-COPY ./config /config
 COPY --from=checker-build /go/status-checker /status-checker
+COPY ./config /config
+COPY ./ui /ui
 ENTRYPOINT ["/status-checker"]
 
 EXPOSE 8000

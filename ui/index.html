@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Status Checker</title>
+    <link rel="stylesheet" href="/ui/assets/styles.css?v={{.v}}">
+</head>
+<body>
+  <h2>Status Checks</h2>
+  <div>
+    <label for="since-input">Since:</label>
+    <input type="datetime-local" id="since-input" />
+    <label for="until-input">Until:</label>
+    <input type="datetime-local" id="until-input" />
+    <label for="until-now-input">Now:</label>
+    <input type="checkbox" id="until-now-input" />
+    <button id="filter-button">Filter</button>
+  </div>
+  <hr>
+  <div id="checks-history-container"></div>
+  <script type="text/javascript" src="/ui/assets/index.js?v={{.v}}"></script>
+</body>
+</html>

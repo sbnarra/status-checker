@@ -2,12 +2,15 @@
 #   command: sudo journalctl --since '1 minute ago'
 # ssh:
 #   command: sudo systemctl status ssh
-#   recover: sudo systemctl restart ssh
+  # recover: sudo systemctl restart ssh
 cloudflare_ping:
   command: ping -W 2 -c 1 1.1.1.1
 # resolve_google:
 #   command: ping -W 2 -c 1 google.com
 
+tester:
+  command: rmdir /tmp/tester
+  recover: mkdir /tmp/tester
 
 
 # ...for all hosts

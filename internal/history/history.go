@@ -24,7 +24,6 @@ func Append(name string, result checker.Result) error {
 	}
 	history = append(history, result)
 
-	historyTruncated := false
 	for memoryUsage(history) > config.HistoryCheckSizeLimit {
 		if length := len(history); length > config.MinHistory {
 			history = history[:length-1]
@@ -32,9 +31,7 @@ func Append(name string, result checker.Result) error {
 			break
 		}
 	}
-	if historyTruncated {
-		historys[name] = history
-	}
+	historys[name] = history
 
 	if historyContent, err := json.Marshal(history); err != nil {
 		return err

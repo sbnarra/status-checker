@@ -2,16 +2,16 @@ body {
   font-family: Arial, sans-serif;
   padding: 20px;
 }
-.service {
+.check-history {
   margin-bottom: 20px;
 }
-.service-name {
+.check-name {
   font-weight: bold;
   margin-bottom: 5px;
 }
 .status-blocks {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 .status-block {
   width: 20px;
@@ -30,9 +30,10 @@ body {
 .status-failed {
   background-color: red;
 }
-.tooltip {
+.history-tooltip {
+  top: 80%;
+  left: 50%;
   visibility: hidden;
-  width: 300px;
   background-color: #fff;
   color: #000;
   text-align: left;
@@ -43,6 +44,6 @@ body {
   white-space: pre; /* Preserve newlines */
   word-wrap: break-word; /* Prevent text from overflowing */
 }
-.status-block:hover .tooltip {
+.status-block:hover .history-tooltip {
   visibility: visible;
 }

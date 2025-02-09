@@ -13,6 +13,7 @@ var HistoryCheckSizeLimit uintptr
 var SlackHookUrl string
 var ServerEnabled bool
 var PrometheusEnabled bool
+var Debug bool
 
 func Init() error {
 	var err error
@@ -23,9 +24,11 @@ func Init() error {
 		return err
 	}
 	// server
-	if ServerEnabled, err = withBoolDefault("SERVER_ENABLED", false); err != nil {
+	if ServerEnabled, err = withBoolDefault("SERVER_ENABLED", true); err != nil {
 		return err
 	} else if BindAddr, err = withStrDefault("BIND_ADDR", ":8000"); err != nil {
+		return err
+	} else if Debug, err = withBoolDefault("DEBUG", true); err != nil {
 		return err
 	}
 	// history
