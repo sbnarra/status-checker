@@ -22,9 +22,14 @@ func Listen(addr string) error {
 	router.GET("/history/:name", api.GetHistoryByCheck)
 
 	router.LoadHTMLFiles("ui/index.html")
+	router.GET("/", rootRedirect)
 	router.GET("/ui", indexPage)
 	router.Static("/ui/assets", "./ui/assets")
 	return router.Run(addr)
+}
+
+func rootRedirect(c *gin.Context) {
+	c.Redirect(http.StatusPermanentRedirect, "/ui")
 }
 
 func indexPage(c *gin.Context) {
