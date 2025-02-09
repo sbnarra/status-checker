@@ -28,12 +28,10 @@ jobs:
         platforms: all
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
-    - name: See Platforms
-      run: docker buildx inspect --bootstrap | grep "Platforms:"
     - name: Build and push multi-arch image
       run: |
         docker buildx build \
-          --platform linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x \
+          --platform linux/amd64,linux/arm64,linux/riscv64,linux/ppc64le,linux/s390x,linux/386,linux/mips64le,linux/mips64,linux/arm/v7,linux/arm/v6 \
           --build-arg CREATED=$(date --iso-8601=s) \
           --build-arg REVISION=${{ env.hash }} \
           -t status-checker:${{ env.hash }} \
