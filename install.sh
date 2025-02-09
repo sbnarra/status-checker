@@ -19,16 +19,21 @@ set -e
 arch=$(uname -m)
 if [ "$arch" == "i386" ]; then arch="386"
 elif [ "$arch" == "x86_64" ]; then arch="amd64"
+elif [ "$arch" == "aarch64" ]; then arch="arm64"
 elif [ "$arch" == "armv6l" ]; then arch="arm_v6"
 elif [ "$arch" == "armv7l" ]; then arch="arm_v7"
-elif [ "$arch" == "aarch64" ]; then arch="arm64"
+# elif [ "$arch" == "mips64" ]; then arch="mips64"
+# elif [ "$arch" == "mips64le" ]; then arch="mips64le"
+# elif [ "$arch" == "ppc64le" ]; then arch="ppc64le"
+# elif [ "$arch" == "riscv64" ]; then arch="riscv64"
+# elif [ "$arch" == "s390x" ]; then arch="s390x"
 else arch=$arch
 fi
 
 echo "...installing into $INSTALL_DIR"
 mkdir -p $INSTALL_DIR
 
-download_bin_url=$(curl -s https://api.github.com/repos/sbnarra/status-checker/releases/latest | jq -r '.assets[] | select(.name == "status-checker_'$arch'") | .url')
+download_bin_url=$(curl -s https://api.github.com/repos/sbnarra/status-checker/releases/latest | jq -r '.assets[] | select(.name == "linux_'$arch'") | .url')
 curl -o $INSTALL_DIR/status-checker $download_bin_url
 [ !-e $INSTALL_DIR/checks.yaml ] && \
   curl -o $INSTALL_DIR/checks.yaml https://raw.githubusercontent.com/sbnarra/status-checker/refs/heads/main/config/checks.yaml
