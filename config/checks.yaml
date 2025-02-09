@@ -1,20 +1,9 @@
-# journalctl:
-#   command: sudo journalctl --since '1 minute ago'
-# ssh:
-#   command: sudo systemctl status ssh
-  # recover: sudo systemctl restart ssh
-cloudflare_ping:
+
+internet:
   command: ping -W 2 -c 1 1.1.1.1
-# resolve_google:
-#   command: ping -W 2 -c 1 google.com
-
-tester:
-  command: rmdir /tmp/tester
-  recover: mkdir /tmp/tester
-
-
-# ...for all hosts
-# journalctl: (not a check, just a data grab)
-# gateway: ping 192.168.0.1
-# internet: ping -W 2 -c 1 1.1.1.1 || ping -W 2 -c 1 8.8.8.8
-# ssh:
+  recover: ping -W 2 -c 1 8.8.8.8
+journalctl:
+  command: sudo journalctl --since '1 minute ago'
+ssh:
+  command: sudo systemctl status ssh
+  recover: sudo systemctl restart ssh

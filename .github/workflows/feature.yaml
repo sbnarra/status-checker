@@ -28,6 +28,8 @@ jobs:
         platforms: all
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
+    - name: See Platforms
+      run: docker buildx inspect --bootstrap | grep "Platforms:"
     - name: Build and push multi-arch image
       run: |
         docker buildx build \
