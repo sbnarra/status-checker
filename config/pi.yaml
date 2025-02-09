@@ -1,3 +1,0 @@
-dhcp:
-  command: systemctl status isc-dhcp-server
-  recover: systemctl restart isc-dhcp-server

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
+	"status-checker/internal/config"
 	"time"
 )
 
@@ -12,7 +13,9 @@ func Info(msg string, vals ...any) {
 }
 
 func Debug(msg string, vals ...any) {
-	println("DEBUG", msg, vals...)
+	if config.Debug {
+		println("DEBUG", msg, vals...)
+	}
 }
 
 func Error(msg string, vals ...any) {
@@ -27,12 +30,10 @@ func println(level string, msg string, vals ...any) {
 }
 
 func caller() string {
-	if pc, _, _, ok := runtime.Caller(3); !ok {
-		return ""
-	} else {
+	if pc, _, line, ok := runtime.Caller(3); ok {
 		funcForPc := runtime.FuncForPC(pc)
-		_, line := funcForPc.FileLine(pc)
 		file := filepath.Base(funcForPc.Name())
 		return fmt.Sprintf("%s:%d", file, line)
 	}
+	return ""
 }

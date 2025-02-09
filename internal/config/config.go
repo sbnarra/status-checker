@@ -28,7 +28,7 @@ func Init() error {
 		return err
 	} else if BindAddr, err = withStrDefault("BIND_ADDR", ":8000"); err != nil {
 		return err
-	} else if Debug, err = withBoolDefault("DEBUG", true); err != nil {
+	} else if Debug, err = withBoolDefault("DEBUG", false); err != nil {
 		return err
 	}
 	// history
