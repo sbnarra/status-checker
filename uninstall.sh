@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ "$(id -u)" -ne 0 ]; then
-    echo "This installer must be run as root, elevating..."
+    echo "This uninstaller must be run as root, elevating..."
     exec sudo bash "$0" "$@"
 fi
 

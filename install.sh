@@ -1,4 +1,5 @@
 #!/bin/bash
+error() { echo $@; exit 1; }
 
 INSTALL_DIR=${INSTALL_DIR:-/opt/status-checker}
 
@@ -33,13 +34,20 @@ fi
 echo "...installing into $INSTALL_DIR"
 mkdir -p $INSTALL_DIR
 
+
 download_bin_url=$(curl -s https://api.github.com/repos/sbnarra/status-checker/releases/latest | jq -r '.assets[] | select(.name == "status-checker_'$arch'") | .browser_download_url')
-curl -sL -o $INSTALL_DIR/status-checker $download_bin_url
-chmod +x $INSTALL_DIR/status-checker
+curl -sL -o $INSTALL_DIR/status-checker $download_bin_url || error "failed to download bin: $download_bin_url"
+chmod +x $INSTALL_DIR/status-checker || error "failed to make bin executable $INSTALL_DIR/status-checker"
+
+download_ui_url=$(curl -s https://api.github.com/repos/sbnarra/status-checker/releases/latest | jq -r '.assets[] | select(.name == "ui.tar.gz") | .browser_download_url')
+curl -sL -o $INSTALL_DIR/ui.tar.gz $download_ui_url || error "failed to download ui: $download_ui_url"
+tar -xzf $INSTALL_DIR/ui.tar.gz -C $INSTALL_DIR || error "failed to unpack ui"
+rm $INSTALL_DIR/ui.tar.gz || error "failed to rm ui tar"
+
 [ -e $INSTALL_DIR/checks.yaml ] || \
-  curl -s -o $INSTALL_DIR/checks.yaml https://raw.githubusercontent.com/sbnarra/status-checker/refs/heads/main/config/checks.yaml
+  (curl -s -o $INSTALL_DIR/checks.yaml https://raw.githubusercontent.com/sbnarra/status-checker/refs/heads/main/config/checks.yaml || error failed to download checks config)
 [ -e $INSTALL_DIR/config.env ] || \
-  cat <<EOF >$INSTALL_DIR/config.env
+  (cat <<EOF >$INSTALL_DIR/config.env || error "failed to write config.env")
 CHECKS_PATH=$INSTALL_DIR/checks.yaml
 BIND_ADDR=:9944
 # SERVER_ENABLED=true
@@ -60,6 +68,7 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
+WorkingDirectory=$INSTALL_DIR
 ExecStart=$INSTALL_DIR/status-checker
 EnvironmentFile=$INSTALL_DIR/config.env
 StandardOutput=inherit
