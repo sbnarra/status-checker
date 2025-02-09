@@ -52,8 +52,7 @@ jobs:
         done
 
     - name: Create UI tar.gz archive
-      run: |
-        tar -czf ui.tar.gz -C ./ui release/.
+      run: tar -czf release/ui.tar.gz ./ui
 
     - name: Create release
       uses: ncipollo/release-action@v1
