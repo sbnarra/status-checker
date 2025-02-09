@@ -45,10 +45,15 @@ jobs:
           -t sbnarra/status-checker:latest \
           --output type=local,dest=./build \
           --push .
+
+        mkdir -p release
+        find build -name status-checker | while read file; do
+          cp "$file" "release/$(echo "$file" | sed 's|build/linux_\([^/]*\)/status-checker|status-checker_\1|')"
+        done
     - name: Create release
       uses: ncipollo/release-action@v1
       with:
-        artifacts: build/*
+        artifacts: release/*
         tag: ${{ env.hash }}
         name: Release ${{ env.hash }}
         body: |
