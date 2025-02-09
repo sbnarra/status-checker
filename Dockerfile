@@ -4,7 +4,7 @@ ARG TARGETARCH
 COPY ./ .
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o status-checker main.go
 
-FROM status
+FROM scratch
 ARG CREATED
 ARG REVISION
 
