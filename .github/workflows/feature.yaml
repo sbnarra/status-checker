@@ -31,10 +31,9 @@ jobs:
     - name: Build and push multi-arch image
       run: |
         docker buildx build \
-          --platform linux/amd64,linux/arm64,linux/riscv64,linux/ppc64le,linux/s390x,linux/386,linux/mips64le,linux/mips64,linux/arm/v7,linux/arm/v6 \
+          --platform linux/amd64 \
           --build-arg CREATED=$(date --iso-8601=s) \
           --build-arg REVISION=${{ env.hash }} \
           -t status-checker:${{ env.hash }} \
           -t status-checker:latest \
-          --output type=local,dest=./build \
-          --push .
+          --output type=local,dest=./build .

@@ -1,4 +1,0 @@
-nas_ssh:
-  command: su lab ssh nas echo
-pi_ssh:
-  command: su lab ssh pi echo

@@ -1,8 +1,7 @@
-
 internet:
   command: ping -W 2 -c 1 1.1.1.1
   recover: ping -W 2 -c 1 8.8.8.8
-journalctl:
+system:
   command: sudo journalctl --since '1 minute ago'
 ssh:
   command: sudo systemctl status ssh
