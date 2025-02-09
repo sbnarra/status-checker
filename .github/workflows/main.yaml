@@ -22,7 +22,7 @@ jobs:
       run: echo "hash=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
     - name: Get commit message
       id: get_message
-      run: echo "message=$(git log -1 --pretty=%B)" >> $GITHUB_ENV
+      run: echo "message='$(git log -1 --pretty=%B)'" >> $GITHUB_ENV
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2
