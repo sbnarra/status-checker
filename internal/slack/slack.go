@@ -37,9 +37,9 @@ func commandMarkdown(stage string, name string, check checker.Check, cmd *checke
 	} else if cmd.Error != nil {
 		messagePrefix := "\n*%s Error: _%s_*\n_Command:_ `%s`\n_Error:_ `%s`"
 		if cmd.Output == "" {
-			return fmt.Sprintf(messagePrefix, stage, name, cmd.Command, cmd.Error)
+			return fmt.Sprintf(messagePrefix, stage, name, cmd.Command, *cmd.Error)
 		}
-		return fmt.Sprintf(messagePrefix+"\n```\n%s\n```", stage, name, cmd.Command, cmd.Error, cmd.Output)
+		return fmt.Sprintf(messagePrefix+"\n```\n%s\n```", stage, name, cmd.Command, *cmd.Error, cmd.Output)
 	}
 	return fmt.Sprintf("\n*%s Success: _%s_*\n_Command:_ `%s`\n```\n%s\n```", stage, name, cmd.Command, cmd.Output)
 }
