@@ -23,19 +23,32 @@ func (c *Check) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 type Result struct {
-	Command string  `json:"command"`
-	Recover *string `json:"recover"`
+	Status Status `json:"status"`
 
 	Started   time.Time `json:"started"`
 	Completed time.Time `json:"completed"`
-	Status    string    `json:"status"`
 
-	CheckOutput string  `json:"check_output"`
-	CheckError  *string `json:"check_error,omitempty"`
-
-	RecoverOutput *string `json:"recover_output,omitempty"`
-	RecoverError  *string `json:"recover_error,omitempty"`
-
-	RecheckOutput *string `json:"recheck_output,omitempty"`
-	RecheckError  *string `json:"recheck_error,omitempty"`
+	Check   *CmdResult `json:"check"`
+	Recover *CmdResult `json:"recover"`
+	ReCheck *CmdResult `json:"recheck"`
 }
+
+type CmdResult struct {
+	Command string `json:"command"`
+	Status  Status `json:"status"`
+
+	Started   time.Time `json:"started"`
+	Completed time.Time `json:"completed"`
+
+	Output string  `json:"output"`
+	Error  *string `json:"error"`
+}
+
+type Status string
+
+const (
+	StatusRunning   Status = "Running"
+	StatusSuccess   Status = "Success"
+	StatusRecovered Status = "Recovered"
+	StatusFailed    Status = "Failed"
+)

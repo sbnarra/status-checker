@@ -1,88 +1,131 @@
 package checker
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"status-checker/internal/config"
 	"status-checker/internal/log"
-	"strings"
+	"sync"
 	"time"
 
 	"github.com/robfig/cron/v3"
 	"gopkg.in/yaml.v3"
 )
 
-type OnChecked func(string, Check, Result)
+type CheckCallback func(string, Check, *Result)
 
-func New(onChecked OnChecked) (*cron.Cron, error) {
+func New(callback CheckCallback) (*cron.Cron, error) {
 	if checks, err := Config(); err != nil {
 		return nil, fmt.Errorf("failed to read config: %w", err)
-	} else if checker, err := runChecks(checks, onChecked); err != nil {
+	} else if checker, err := runChecks(checks, callback); err != nil {
 		return nil, fmt.Errorf("failed to start checker: %w", err)
 	} else {
 		return checker, nil
 	}
 }
 
-func runChecks(checks map[string]Check, onChecked OnChecked) (*cron.Cron, error) {
+func runChecks(checks map[string]Check, callback CheckCallback) (*cron.Cron, error) {
 	c := cron.New(cron.WithParser(cron.NewParser(
 		cron.SecondOptional | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor,
 	)))
 	for name, check := range checks {
 
 		log.Info("check '%s' has schedule '%s' using '%s'", name, check.Schedule, check.Command)
-		doCheck := func() {
-			log.Debug("running check '%s'", name)
-			result := runCheck(check)
-			onChecked(name, check, result)
+		runCheckNow := func() {
+			if err := runCheck(name, check, callback); err != nil {
+				log.Error("failed to run check '%s': %s", name, err)
+			}
 		}
-		doCheck()
-		if _, err := c.AddFunc(check.Schedule, doCheck); err != nil {
+		go runCheckNow()
+		if _, err := c.AddFunc(check.Schedule, runCheckNow); err != nil {
 			return nil, err
 		}
 	}
 	return c, nil
 }
 
-func runCheck(check Check) Result {
-	result := Result{
-		Command: check.Command,
-		Recover: check.Recover,
+var checkRunLocks sync.Map
+
+func runCheck(name string, check Check, callback CheckCallback) error {
+	lock, _ := checkRunLocks.LoadOrStore(name, &sync.Mutex{})
+	lock.(*sync.Mutex).Lock()
+	defer lock.(*sync.Mutex).Unlock()
+
+	log.Debug("running check '%s'", name)
+	result := &Result{
+		Status:  StatusRunning,
 		Started: time.Now(),
 	}
-	finalise := func(status string) Result {
+	callback(name, check, result)
+	defer callback(name, check, result)
+
+	finalise := func(status Status) {
 		result.Completed = time.Now()
 		result.Status = status
-		return result
+	}
+	onError := func(status Status, stage string, checkErr error, err error) error {
+		finalise(status)
+		return fmt.Errorf("check=%w: %s=%w", checkErr, stage, err)
 	}
 
-	checkStdout, checkError := runCmd(check.Command)
-	result.CheckOutput = checkStdout
-	result.CheckError = errToStr(checkError)
-	if result.CheckError == nil {
-		return finalise("Success")
-	} else if check.Recover == nil {
-		missingRecovery := "no recovery command"
-		result.RecoverError = &missingRecovery
-		return finalise("Failed")
+	result.Check = &CmdResult{}
+	if checkErr := runCmd(&check.Command, result.Check); checkErr != nil {
+		result.Recover = &CmdResult{}
+		if err := runCmd(check.Recover, result.Recover); err != nil {
+			return onError(StatusFailed, "recover", checkErr, err)
+		}
+		result.ReCheck = &CmdResult{}
+		if err := runCmd(&check.Command, result.ReCheck); err != nil {
+			return onError(StatusFailed, "recheck", checkErr, err)
+		}
+	} else {
+		finalise(StatusSuccess)
+	}
+	finalise(StatusRecovered)
+	return nil
+}
+
+func runCmd(command *string, result *CmdResult) error {
+	result.Status = StatusRunning
+	result.Started = time.Now()
+	finalise := func(status Status, err error) error {
+		result.Completed = time.Now()
+		result.Status = status
+		result.Error = errToStr(err)
+		return err
 	}
 
-	recoverStdout, recoverErr := runCmd(*check.Recover)
-	result.RecoverOutput = &recoverStdout
-	result.RecoverError = errToStr(recoverErr)
-	if result.RecoverError != nil {
-		return finalise("Failed")
+	if command == nil {
+		return finalise(StatusFailed, fmt.Errorf("missing command"))
+	}
+	result.Command = *command
+
+	cmd := exec.Command("bash", "-c", result.Command)
+	cmd.Env = os.Environ()
+
+	if stdout, err := cmd.StdoutPipe(); err != nil {
+		return finalise(StatusFailed, err)
+	} else if stderr, err := cmd.StderrPipe(); err != nil {
+		return finalise(StatusFailed, err)
+	} else {
+		capture := func(reader io.ReadCloser) {
+			scanner := bufio.NewScanner(reader)
+			scanner.Split(bufio.ScanWords)
+			for scanner.Scan() {
+				result.Output += scanner.Text()
+			}
+		}
+		go capture(stdout)
+		go capture(stderr)
 	}
 
-	recheckStdout, recheckErr := runCmd(check.Command)
-	result.RecheckOutput = &recheckStdout
-	result.RecheckError = errToStr(recheckErr)
-	if result.RecheckError != nil {
-		return finalise("Failed")
+	if err := cmd.Run(); err != nil {
+		return finalise(StatusFailed, err)
 	}
-	return finalise("Recovered")
+	return finalise(StatusSuccess, nil)
 }
 
 func errToStr(err error) *string {
@@ -91,13 +134,6 @@ func errToStr(err error) *string {
 	}
 	errStr := fmt.Sprintf("%s", err)
 	return &errStr
-}
-
-func runCmd(command string) (string, error) {
-	cmd := exec.Command("bash", "-c", command)
-	cmd.Env = os.Environ()
-	out, err := cmd.CombinedOutput()
-	return strings.TrimSpace(string(out)), err
 }
 
 var checks map[string]Check

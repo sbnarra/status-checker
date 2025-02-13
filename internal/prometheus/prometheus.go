@@ -18,7 +18,7 @@ type checkMetrics struct {
 
 var metrics = make(map[string]checkMetrics)
 
-func Publish(name string, result checker.Result) {
+func Publish(name string, result *checker.Result) {
 	if config.PrometheusEnabled {
 		return
 	}
@@ -26,12 +26,13 @@ func Publish(name string, result checker.Result) {
 	checkMetrics := getCheckMetrics(name)
 	checkMetrics.total.Inc()
 
-	if result.CheckError == nil {
+	switch result.Status {
+	case checker.StatusSuccess:
 		checkMetrics.success.Inc()
-	} else if result.RecoverError != nil || result.RecheckError != nil {
-		checkMetrics.failed.Inc()
-	} else {
+	case checker.StatusRecovered:
 		checkMetrics.recovered.Inc()
+	case checker.StatusFailed:
+		checkMetrics.failed.Inc()
 	}
 }
 

@@ -1,8 +1,12 @@
-internet:
-  command: ping -W 2 -c 1 1.1.1.1
-  recover: ping -W 2 -c 1 8.8.8.8
-system:
-  command: sudo journalctl --since '1 minute ago'
-ssh:
-  command: sudo systemctl status ssh
-  recover: sudo systemctl restart ssh
+# internet:
+#   command: ping -W 2 -c 1 1.1.1.1
+#   recover: ping -W 2 -c 1 8.8.8.8
+# system:
+#   command: sudo journalctl --since '1 minute ago'
+# ssh:
+#   command: sudo systemctl status ssh
+#   recover: sudo systemctl restart ssh
+test:
+  # command: echo 123 && sleep 5 && exit 1
+  command: echo 123
+  recover: echo 123 && sleep 5

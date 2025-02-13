@@ -15,7 +15,7 @@ func GetHistory(c *gin.Context) {
 		onError(c, err)
 	} else {
 
-		allHistory := map[string][]checker.Result{}
+		allHistory := map[string][]*checker.Result{}
 		for name, _ := range checkerConfig {
 			if checkHistory, err := history.Get(name); err != nil {
 				onError(c, err)
@@ -44,7 +44,7 @@ func GetHistoryByCheck(c *gin.Context) {
 
 const dateTimeFormat = "2006-01-02T15:04:05"
 
-func applyHistoryFilters(c *gin.Context, results []checker.Result) ([]checker.Result, error) {
+func applyHistoryFilters(c *gin.Context, results []*checker.Result) ([]*checker.Result, error) {
 	sinceStr := c.Query("since")
 	untilStr := c.Query("until")
 	if sinceStr == "" {
@@ -64,8 +64,8 @@ func applyHistoryFilters(c *gin.Context, results []checker.Result) ([]checker.Re
 	}
 }
 
-func filterHistory(since time.Time, until time.Time, results []checker.Result) []checker.Result {
-	new := []checker.Result{}
+func filterHistory(since time.Time, until time.Time, results []*checker.Result) []*checker.Result {
+	new := []*checker.Result{}
 	for _, result := range results {
 		if result.Started.UnixMicro() > since.UnixMicro() && until.UnixMicro() > result.Started.UnixMicro() {
 			new = append(new, result)

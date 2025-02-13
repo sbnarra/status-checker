@@ -129,23 +129,18 @@ function resetPage() {
   fetchChecksHistorys();
 }
 
+document.getElementById('filter-button').addEventListener('click', resetPage);
 sinceInput.value = historyLastPolled
-untilInput.value = apiDateTime(new Date())
-untilInput.disabled = true
-untilNowInput.checked = true
 
-fetchChecksHistorys();
-let fetchChecksHistorysInterval = 10_000
-let fetchChecksHistorysId = setInterval(fetchChecksHistorys, fetchChecksHistorysInterval);
-
+let fetchChecksHistorysId = 0
 untilNowInput.addEventListener('click', () => {
   untilInput.disabled = untilNowInput.checked
   untilInput.value = apiDateTime(new Date())
   if (untilNowInput.checked) {
     resetPage()
-    fetchChecksHistorysId = setInterval(fetchChecksHistorys, fetchChecksHistorysInterval);
+    fetchChecksHistorysId = setInterval(fetchChecksHistorys, 10_000);
   } else {
     clearInterval(fetchChecksHistorysId);
   }
 });
-document.getElementById('filter-button').addEventListener('click', resetPage);
+untilNowInput.click()

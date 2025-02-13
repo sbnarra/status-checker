@@ -9,7 +9,7 @@ import (
 	"status-checker/internal/config"
 )
 
-func Notify(name string, check checker.Check, result checker.Result) error {
+func Notify(name string, check checker.Check, result *checker.Result) error {
 	if config.SlackHookUrl == "" {
 		return fmt.Errorf("missing slack hook url")
 	}
@@ -25,27 +25,21 @@ func Notify(name string, check checker.Check, result checker.Result) error {
 	return nil
 }
 
-func Message(name string, check checker.Check, result checker.Result) string {
-	return commandMarkdown("Check", name, &check.Command, &result.CheckOutput, result.CheckError) +
-		commandMarkdown("Recovery", name, check.Recover, result.RecoverOutput, result.RecoverError) +
-		commandMarkdown("Re-Check", name, &check.Command, result.RecheckOutput, result.RecheckError)
+func Message(name string, check checker.Check, result *checker.Result) string {
+	return commandMarkdown("Check", name, check, result.Check) +
+		commandMarkdown("Recovery", name, check, result.Recover) +
+		commandMarkdown("Re-Check", name, check, result.ReCheck)
 }
 
-func commandMarkdown(stage string, name string, command *string, output *string, err *string) string {
-	if command == nil {
-		noCommand := "No Command"
-		command = &noCommand
-	}
-
-	if err != nil {
+func commandMarkdown(stage string, name string, check checker.Check, cmd *checker.CmdResult) string {
+	if cmd == nil {
+		return fmt.Sprintf("\n*%s Skipped: _%s_*\n_Command:_ `%s`", stage, name, check.Command)
+	} else if cmd.Error != nil {
 		messagePrefix := "\n*%s Error: _%s_*\n_Command:_ `%s`\n_Error:_ `%s`"
-		if output == nil {
-			return fmt.Sprintf(messagePrefix, stage, name, *command, err)
+		if cmd.Output == "" {
+			return fmt.Sprintf(messagePrefix, stage, name, cmd.Command, cmd.Error)
 		}
-		return fmt.Sprintf(messagePrefix+"\n```\n%s\n```", stage, name, *command, err, *output)
-	} else if output == nil {
-		return fmt.Sprintf("\n*%s Skipped: _%s_*\n_Command:_ `%s`", stage, name, *command)
-
+		return fmt.Sprintf(messagePrefix+"\n```\n%s\n```", stage, name, cmd.Command, cmd.Error, cmd.Output)
 	}
-	return fmt.Sprintf("\n*%s Success: _%s_*\n_Command:_ `%s`\n```\n%s\n```", stage, name, *command, *output)
+	return fmt.Sprintf("\n*%s Success: _%s_*\n_Command:_ `%s`\n```\n%s\n```", stage, name, cmd.Command, cmd.Output)
 }

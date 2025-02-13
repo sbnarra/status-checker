@@ -7,33 +7,32 @@ import (
 	"path/filepath"
 	"status-checker/internal/checker"
 	"status-checker/internal/config"
-	"sync"
 	"unsafe"
 )
 
-var mu sync.Mutex
-var historys = map[string][]checker.Result{}
+var historys = map[string][]*checker.Result{}
 
-func Append(name string, result checker.Result) error {
-	mu.Lock() // TODO: only lock per-name?
-	defer mu.Unlock()
-
-	history, err := Get(name)
-	if err != nil {
+func Append(name string, result *checker.Result) error {
+	if history, err := Get(name); err != nil {
 		return err
-	}
-	history = append(history, result)
-
-	for memoryUsage(history) > config.HistoryCheckSizeLimit {
-		if length := len(history); length > config.MinHistory {
-			history = history[:length-1]
-		} else {
-			break
+	} else {
+		history = append(history, result)
+		for memoryUsage(history) > config.HistoryCheckSizeLimit {
+			if length := len(history); length > config.MinHistory {
+				history = history[:length-1]
+			} else {
+				break
+			}
 		}
+		historys[name] = history
+		return nil
 	}
-	historys[name] = history
+}
 
-	if historyContent, err := json.Marshal(history); err != nil {
+func Flush(name string) error {
+	if history, err := Get(name); err != nil {
+		return err
+	} else if historyContent, err := json.Marshal(history); err != nil {
 		return err
 	} else if err := os.MkdirAll(config.HistoryDir, os.ModePerm); err != nil {
 		return err
@@ -43,7 +42,7 @@ func Append(name string, result checker.Result) error {
 	return nil
 }
 
-func memoryUsage(arr []checker.Result) uintptr {
+func memoryUsage(arr []*checker.Result) uintptr {
 	var usage uintptr = 0
 	for _, item := range arr {
 		usage += unsafe.Sizeof(item)
@@ -51,7 +50,7 @@ func memoryUsage(arr []checker.Result) uintptr {
 	return usage
 }
 
-func Get(name string) ([]checker.Result, error) {
+func Get(name string) ([]*checker.Result, error) {
 	if history, ok := historys[name]; ok {
 		return history, nil
 	}
@@ -64,8 +63,8 @@ func Get(name string) ([]checker.Result, error) {
 	}
 }
 
-func load(name string) ([]checker.Result, error) {
-	history := []checker.Result{}
+func load(name string) ([]*checker.Result, error) {
+	history := []*checker.Result{}
 
 	if historyFile, err := os.Open(historyFile(name)); err != nil {
 		if os.IsNotExist(err) {

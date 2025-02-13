@@ -17,7 +17,7 @@ import (
 func main() {
 	if err := config.Init(); err != nil {
 		panic(fmt.Errorf("config init error: %w", err))
-	} else if checker, err := checker.New(onChecked); err != nil {
+	} else if checker, err := checker.New(checkCallback); err != nil {
 		panic(err)
 	} else {
 		checker.Start()
@@ -35,15 +35,22 @@ func main() {
 	}
 }
 
-func onChecked(name string, check checker.Check, result checker.Result) {
-	if err := history.Append(name, result); err != nil {
-		log.Error("failed to append history: %s", err)
-	}
-	prometheus.Publish(name, result)
-	if result.CheckError == nil {
-		return
-	}
-	if err := slack.Notify(name, check, result); err != nil {
-		log.Error("failed to send slack message: %s", err)
+func checkCallback(name string, check checker.Check, result *checker.Result) {
+	switch result.Status {
+	case checker.StatusRunning:
+		if err := history.Append(name, result); err != nil {
+			log.Error("failed to append history: %s", err)
+		}
+	default:
+		if err := history.Flush(name); err != nil {
+			log.Error("failed to flush history: %s", err)
+		}
+		prometheus.Publish(name, result)
+		if result.Check.Error == nil {
+			return
+		}
+		if err := slack.Notify(name, check, result); err != nil {
+			log.Error("failed to send slack message: %s", err)
+		}
 	}
 }
